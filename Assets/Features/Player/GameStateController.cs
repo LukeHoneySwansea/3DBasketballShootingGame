@@ -1,41 +1,68 @@
 using UnityEngine;
 using UnityEngine.Events;
 
-// Controls overall game state (menu / gameplay)
+// Controls overall game state (Menu ↔ Gameplay)
 
 public class GameStateController : MonoBehaviour
 {
+    #region ENUMS
+
     public enum GameState
     {
         Menu,
         Playing
     }
 
-    public GameState currentState = GameState.Menu;
+    #endregion
+
+    #region SERIALIZED FIELDS
 
     [Header("Events")]
     public UnityEvent OnMenuState;
     public UnityEvent OnPlayState;
 
-    void Start()
+    [Header("References")]
+    [SerializeField] private GameRoundController roundController;
+
+    #endregion
+
+    #region PUBLIC STATE
+
+    public GameState CurrentState => _currentState;
+
+    #endregion
+
+    #region PRIVATE FIELDS
+
+    private GameState _currentState = GameState.Menu;
+
+    #endregion
+
+    #region UNITY METHODS
+
+    private void Start()
     {
         SetState(GameState.Menu);
     }
 
+    #endregion
+
+    #region STATE CONTROL
+
     public void SetState(GameState newState)
     {
-        if (currentState == newState) return;
+        if (_currentState == newState) return;
 
-        currentState = newState;
+        _currentState = newState;
 
-        switch (currentState)
+        switch (_currentState)
         {
             case GameState.Menu:
-                OnMenuState?.Invoke();
+                EnterMenuState();
                 break;
 
             case GameState.Playing:
-                OnPlayState?.Invoke();
+                EnterPlayState();
                 break;
         }
     }
@@ -49,4 +76,32 @@ public class GameStateController : MonoBehaviour
     {
         SetState(GameState.Menu);
     }
+
+    #endregion
+
+    #region STATE HANDLERS
+
+    private void EnterMenuState()
+    {
+        // Reset game when returning to menu (fixes round carry-over bug)
+        if (roundController != null)
+        {
+            roundController.ResetGame();
+        }
+
+        OnMenuState?.Invoke();
+    }
+
+    private void EnterPlayState()
+    {
+        OnPlayState?.Invoke();
+
+        // Start first round explicitly
+        if (roundController != null)
+        {
+            roundController.StartRound();
+        }
+    }
+
+    #endregion
 }

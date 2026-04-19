@@ -1,10 +1,13 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// Handles grabbing, charging, and throwing the ball
+// Handles grabbing, charging, aiming, and throwing the ball
 
 public class PlayerGrab : MonoBehaviour
 {
+    #region SERIALIZED FIELDS
+
+    [Header("Grab Settings")]
     [SerializeField] private Camera playerCamera;
     [SerializeField] private Transform holdPoint;
     [SerializeField] private float grabRange = 3f;
@@ -16,42 +19,61 @@ public class PlayerGrab : MonoBehaviour
 
     [Header("Assist Settings")]
     [SerializeField] private float arcHeight = 2.5f;
+    [SerializeField] private Transform aimTarget;
 
     [Header("References")]
     [SerializeField] private BallSpawner ballSpawner;
 
-    [SerializeField] private Transform aimTarget;
+    #endregion
 
-    private BallController heldBall;
-    private float currentCharge = 0f;
+    #region PRIVATE FIELDS
 
-    private bool justPickedUp = false;
-    private bool isActive = false;
+    private BallController _heldBall;
 
-    void Update()
+    private float _currentCharge = 0f;
+
+    private bool _justPickedUp = false;
+    private bool _isActive = false;
+
+    #endregion
+
+    #region UNITY METHODS
+
+    private void Update()
     {
-        if (!isActive) return;
+        if (!_isActive) return;
 
-        if (heldBall == null)
+        if (_heldBall == null)
         {
-            if (Mouse.current.leftButton.wasPressedThisFrame)
-            {
-                TryGrab();
-            }
+            HandleGrabInput();
             return;
         }
 
-        if (justPickedUp)
+        HandleHeldState();
+    }
+
+    #endregion
+
+    #region INPUT HANDLING
+
+    private void HandleGrabInput()
+    {
+        if (Mouse.current.leftButton.wasPressedThisFrame)
         {
-            justPickedUp = false;
+            TryGrab();
+        }
+    }
+
+    private void HandleHeldState()
+    {
+        // Prevent instant charge right after pickup
+        if (_justPickedUp)
+        {
+            _justPickedUp = false;
             return;
         }
 
-        if (Mouse.current.leftButton.isPressed)
-        {
-            currentCharge += chargeSpeed * Time.deltaTime;
-            currentCharge = Mathf.Clamp(currentCharge, 0f, maxThrowForce);
-        }
+        HandleCharging();
 
         if (Mouse.current.leftButton.wasReleasedThisFrame)
         {
@@ -59,59 +81,102 @@ public class PlayerGrab : MonoBehaviour
         }
     }
 
-    void TryGrab()
+    private void HandleCharging()
+    {
+        if (!Mouse.current.leftButton.isPressed) return;
+
+        _currentCharge += chargeSpeed * Time.deltaTime;
+        _currentCharge = Mathf.Clamp(_currentCharge, 0f, maxThrowForce);
+    }
+
+    #endregion
+
+    #region GRAB LOGIC
+
+    private void TryGrab()
     {
         Ray ray = playerCamera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0));
-        RaycastHit hit;
 
-        if (Physics.SphereCast(ray, grabRadius, out hit, grabRange))
+        if (Physics.SphereCast(ray, grabRadius, out RaycastHit hit, grabRange))
         {
             BallController ball = hit.collider.GetComponent<BallController>();
 
             if (ball != null && ball.CanBePickedUp())
             {
-                heldBall = ball;
-                ball.PickUp(holdPoint);
+                _heldBall = ball;
+                _heldBall.PickUp(holdPoint);
 
-                justPickedUp = true;
-                currentCharge = 0f;
+                _justPickedUp = true;
+                _currentCharge = 0f;
             }
         }
     }
 
-    void ThrowBall()
+    #endregion
+
+    #region THROW LOGIC
+
+    private void ThrowBall()
     {
         Vector3 start = holdPoint.position;
-        Vector3 direction = playerCamera.transform.forward;
 
         if (aimTarget != null)
         {
-            Vector3 target = aimTarget.position;
-
-            Vector3 velocity = CalculateArcVelocity(start, target, arcHeight);
-
-            float powerMultiplier = Mathf.Lerp(0.95f, 1.05f, currentCharge / maxThrowForce);
-            velocity *= powerMultiplier;
-
-            heldBall.Throw(velocity.normalized, velocity.magnitude);
+            ThrowWithAssist(start);
         }
         else
         {
-            // fallback
-            heldBall.Throw(direction, maxThrowForce);
+            ThrowForward();
         }
 
-        heldBall = null;
-        currentCharge = 0f;
+        ClearHeldBall();
 
-        // Spawn next ball
+        SpawnNextBall();
+    }
+
+    private void ThrowWithAssist(Vector3 start)
+    {
+        Vector3 target = aimTarget.position;
+
+        Vector3 velocity = CalculateArcVelocity(start, target, arcHeight);
+
+        float powerMultiplier = Mathf.Lerp(
+            0.95f,
+            1.05f,
+            _currentCharge / maxThrowForce
+        );
+
+        velocity *= powerMultiplier;
+
+        _heldBall.Throw(velocity.normalized, velocity.magnitude);
+    }
+
+    private void ThrowForward()
+    {
+        Vector3 direction = playerCamera.transform.forward;
+        _heldBall.Throw(direction, maxThrowForce);
+    }
+
+    private void SpawnNextBall()
+    {
         if (ballSpawner != null)
         {
             ballSpawner.SpawnBall();
         }
     }
 
-    Vector3 CalculateArcVelocity(Vector3 start, Vector3 target, float height)
+    private void ClearHeldBall()
+    {
+        _heldBall = null;
+        _currentCharge = 0f;
+    }
+
+    #endregion
+
+    #region ARC CALCULATION
+
+    // Calculates a clean arc from start → target
+    private Vector3 CalculateArcVelocity(Vector3 start, Vector3 target, float height)
     {
         float gravity = Physics.gravity.y;
 
@@ -128,27 +193,33 @@ public class PlayerGrab : MonoBehaviour
         return velocityXZ + velocityY;
     }
 
+    #endregion
+
+    #region PUBLIC METHODS
+
     public float GetChargeNormalized()
     {
-        return currentCharge / maxThrowForce;
+        return _currentCharge / maxThrowForce;
     }
 
     public void EnableInput()
     {
-        isActive = true;
+        _isActive = true;
     }
 
     public void DisableInput()
     {
-        isActive = false;
+        _isActive = false;
 
-        if (heldBall != null)
+        if (_heldBall != null)
         {
-            heldBall.Release();
-            heldBall = null;
+            _heldBall.Release();
+            _heldBall = null;
         }
 
-        currentCharge = 0f;
-        justPickedUp = false;
+        _currentCharge = 0f;
+        _justPickedUp = false;
     }
+
+    #endregion
 }

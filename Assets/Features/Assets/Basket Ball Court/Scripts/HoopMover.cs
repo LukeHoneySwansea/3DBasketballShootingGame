@@ -1,7 +1,11 @@
 using UnityEngine;
 
+// Controls hoop movement and difficulty scaling over rounds
+
 public class HoopMover : MonoBehaviour
 {
+    #region SERIALIZED FIELDS
+
     [Header("Movement Settings")]
     [SerializeField] private float startMoveSpeed = 0.4f;
     [SerializeField] private float speedIncrease = 0.1f;
@@ -17,73 +21,109 @@ public class HoopMover : MonoBehaviour
     [Header("Growth")]
     [SerializeField] private float rangeIncrease = 0.1f;
 
-    private Vector3 startPos;
+    #endregion
 
-    private float movementTime = 0f;
-    private float moveSpeed = 0f;
+    #region PRIVATE FIELDS
 
-    private float currentXRange;
-    private float currentYRange;
+    private Vector3 _startPos;
 
-    private bool isMoving = false;
+    private float _movementTime = 0f;
+    private float _moveSpeed = 0f;
 
-    void Awake()
+    private float _currentXRange;
+    private float _currentYRange;
+
+    private bool _isMoving = false;
+
+    #endregion
+
+    #region UNITY METHODS
+
+    private void Awake()
     {
-        startPos = transform.position;
-        transform.position = startPos;
+        _startPos = transform.position;
 
-        // Start small
-        currentXRange = startXRange;
-        currentYRange = startYRange;
+        // Ensure exact starting position (prevents drift from editor tweaks)
+        transform.position = _startPos;
+
+        // Initialise with small movement range (easy early rounds)
+        _currentXRange = startXRange;
+        _currentYRange = startYRange;
     }
 
-    void Update()
+    private void Update()
     {
-        if (!isMoving) return;
+        if (!_isMoving) return;
 
-        movementTime += Time.deltaTime * moveSpeed;
-
-        float x = Mathf.Sin(movementTime) * currentXRange;
-
-        float yRaw = Mathf.Sin(movementTime * 0.8f) * currentYRange;
-        float y = Mathf.Max(0f, yRaw);
-
-        transform.position = new Vector3(
-            startPos.x + x,
-            startPos.y + y,
-            startPos.z
-        );
+        UpdateMovement();
     }
 
+    #endregion
+
+    #region PUBLIC METHODS
+
+    /// <summary>
+    /// Increases hoop difficulty by enabling movement and scaling speed/range
+    /// </summary>
     public void IncreaseDifficulty()
     {
-        // First activation
-        if (!isMoving)
+        // First call → enable movement
+        if (!_isMoving)
         {
-            isMoving = true;
-            movementTime = 0f;
-            moveSpeed = startMoveSpeed;
+            _isMoving = true;
+            _movementTime = 0f;
+            _moveSpeed = startMoveSpeed;
             return;
         }
 
-        // Increase speed
-        moveSpeed += speedIncrease;
+        // Increase movement speed
+        _moveSpeed += speedIncrease;
 
-        // Grow movement range (clamped to max)
-        currentXRange = Mathf.Min(currentXRange + rangeIncrease, maxXRange);
-        currentYRange = Mathf.Min(currentYRange + rangeIncrease, maxYRange);
+        // Gradually expand movement range (clamped to max values)
+        _currentXRange = Mathf.Min(_currentXRange + rangeIncrease, maxXRange);
+        _currentYRange = Mathf.Min(_currentYRange + rangeIncrease, maxYRange);
     }
 
+    /// <summary>
+    /// Resets hoop to its initial state (used when restarting the game)
+    /// </summary>
     public void ResetHoop()
     {
-        isMoving = false;
-        moveSpeed = 0f;
-        movementTime = 0f;
+        _isMoving = false;
+        _moveSpeed = 0f;
+        _movementTime = 0f;
 
-        // Reset to small starting movement
-        currentXRange = startXRange;
-        currentYRange = startYRange;
+        // Reset movement bounds
+        _currentXRange = startXRange;
+        _currentYRange = startYRange;
 
-        transform.position = startPos;
+        transform.position = _startPos;
     }
+
+    #endregion
+
+    #region PRIVATE METHODS
+
+    /// <summary>
+    /// Handles sinusoidal movement within defined bounds
+    /// </summary>
+    private void UpdateMovement()
+    {
+        _movementTime += Time.deltaTime * _moveSpeed;
+
+        // Horizontal movement
+        float x = Mathf.Sin(_movementTime) * _currentXRange;
+
+        // Vertical movement (only upwards from start position)
+        float yRaw = Mathf.Sin(_movementTime * 0.8f) * _currentYRange;
+        float y = Mathf.Max(0f, yRaw);
+
+        transform.position = new Vector3(
+            _startPos.x + x,
+            _startPos.y + y,
+            _startPos.z
+        );
+    }
+
+    #endregion
 }

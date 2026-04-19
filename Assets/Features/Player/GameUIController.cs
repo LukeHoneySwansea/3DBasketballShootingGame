@@ -2,81 +2,91 @@ using UnityEngine;
 using TMPro;
 using System.Collections;
 
-// Handles gameplay UI + round flow timing
+// Handles gameplay UI + round flow (start transitions + game over)
 
 public class GameUIController : MonoBehaviour
 {
+    #region SERIALIZED FIELDS
+
     [Header("References")]
     [SerializeField] private GameRoundController roundController;
     [SerializeField] private BallSpawner ballSpawner;
+    [SerializeField] private GameStateController gameStateController;
 
     [Header("Main UI")]
     [SerializeField] private TMP_Text roundText;
     [SerializeField] private TMP_Text timerText;
     [SerializeField] private TMP_Text scoreText;
 
-    [Header("Overlay Text")]
+    [Header("Overlay UI")]
     [SerializeField] private TMP_Text roundPopupText;
     [SerializeField] private TMP_Text gameOverText;
 
-    void Start()
-    {
-        if (roundPopupText != null)
-            roundPopupText.gameObject.SetActive(false);
+    #endregion
 
-        if (gameOverText != null)
-            gameOverText.gameObject.SetActive(false);
+    #region UNITY METHODS
+
+    private void Start()
+    {
+        SetOverlayActive(roundPopupText, false);
+        SetOverlayActive(gameOverText, false);
     }
 
-    void Update()
+    private void Update()
     {
         if (roundController == null) return;
 
         UpdateUI();
     }
 
-    void UpdateUI()
+    #endregion
+
+    #region UI UPDATE
+
+    private void UpdateUI()
     {
-        // Round
-        if (roundText != null)
-        {
-            roundText.text = $"Round: {roundController.GetRound()}";
-        }
-
-        // Timer
-        if (timerText != null)
-        {
-            float time = Mathf.Max(0f, roundController.GetTimeRemaining());
-            timerText.text = $"Time: {Mathf.CeilToInt(time)}";
-        }
-
-        // Score
-        if (scoreText != null)
-        {
-            scoreText.text = $"{roundController.GetScore()} / {roundController.GetTargetScore()}";
-        }
+        UpdateRoundText();
+        UpdateTimerText();
+        UpdateScoreText();
     }
 
-    // =========================
-    // ROUND FLOW
-    // =========================
+    private void UpdateRoundText()
+    {
+        if (roundText == null) return;
+
+        roundText.text = $"Round: {roundController.GetRound()}";
+    }
+
+    private void UpdateTimerText()
+    {
+        if (timerText == null) return;
+
+        float time = Mathf.Max(0f, roundController.GetTimeRemaining());
+        timerText.text = $"Time: {Mathf.CeilToInt(time)}";
+    }
+
+    private void UpdateScoreText()
+    {
+        if (scoreText == null) return;
+
+        scoreText.text = $"{roundController.GetScore()} / {roundController.GetTargetScore()}";
+    }
+
+    #endregion
+
+    #region ROUND FLOW
 
     public void HandleRoundStart()
     {
         StartCoroutine(RoundStartSequence());
     }
 
-    IEnumerator RoundStartSequence()
+    private IEnumerator RoundStartSequence()
     {
-        // Stop gameplay
-        if (ballSpawner != null)
-            ballSpawner.StopSpawning();
+        // Stop gameplay + clean scene
+        StopGameplay();
 
-        // 🧹 CLEAR ALL BALLS
-        if (ballSpawner != null)
-            ballSpawner.ClearAllBalls();
-
-        // Show ROUND text
+        // Show ROUND popup
         if (roundPopupText != null)
         {
             roundPopupText.text = $"ROUND {roundController.GetRound()}";
@@ -85,36 +95,29 @@ public class GameUIController : MonoBehaviour
 
         yield return new WaitForSeconds(1f);
 
-        // Hide text
-        if (roundPopupText != null)
-            roundPopupText.gameObject.SetActive(false);
+        // Hide popup
+        SetOverlayActive(roundPopupText, false);
 
         // Resume gameplay
         if (ballSpawner != null)
+        {
             ballSpawner.StartSpawning();
+        }
     }
 
-    // =========================
-    // GAME OVER
-    // =========================
+    #endregion
+
+    #region GAME OVER
 
     public void HandleGameOver()
     {
         StartCoroutine(GameOverSequence());
     }
 
-    IEnumerator GameOverSequence()
+    private IEnumerator GameOverSequence()
     {
-        // Stop gameplay
-        if (ballSpawner != null)
-            ballSpawner.StopSpawning();
-
-        // Stop gameplay
-        if (ballSpawner != null)
-        {
-            ballSpawner.StopSpawning();
-            ballSpawner.ClearAllBalls();
-        }
+        // Stop gameplay + clean scene
+        StopGameplay();
 
         // Show GAME OVER
         if (gameOverText != null)
@@ -126,10 +129,34 @@ public class GameUIController : MonoBehaviour
         yield return new WaitForSeconds(3f);
 
         // Hide text
-        if (gameOverText != null)
-            gameOverText.gameObject.SetActive(false);
+        SetOverlayActive(gameOverText, false);
 
-        // Return to menu
-        FindObjectOfType<GameStateController>().ReturnToMenu();
+        // Return to menu (no FindObjectOfType anymore)
+        if (gameStateController != null)
+        {
+            gameStateController.ReturnToMenu();
+        }
     }
+
+    #endregion
+
+    #region HELPERS
+
+    private void StopGameplay()
+    {
+        if (ballSpawner == null) return;
+
+        ballSpawner.StopSpawning();
+        ballSpawner.ClearAllBalls();
+    }
+
+    private void SetOverlayActive(TMP_Text text, bool state)
+    {
+        if (text != null)
+        {
+            text.gameObject.SetActive(state);
+        }
+    }
+
+    #endregion
 }

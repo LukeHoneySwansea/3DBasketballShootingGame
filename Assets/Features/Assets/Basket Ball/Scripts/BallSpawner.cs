@@ -1,38 +1,52 @@
 using UnityEngine;
 
-// Handles spawning balls with a max limit
+// Handles spawning balls with a max limit and safe lifecycle management
 
 public class BallSpawner : MonoBehaviour
 {
+    #region SERIALIZED FIELDS
+
+    [Header("Spawn Settings")]
     [SerializeField] private GameObject ballPrefab;
     [SerializeField] private Transform spawnPoint;
-
-    [Header("Settings")]
     [SerializeField] private int maxBalls = 5;
 
     [Header("Audio")]
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip appearClip;
 
-    private int activeBallCount = 0;
-    private bool isSpawningEnabled = false;
+    #endregion
+
+    #region PRIVATE FIELDS
+
+    private int _activeBallCount = 0;
+    private bool _isSpawningEnabled = false;
+
+    #endregion
+
+    #region SPAWN CONTROL
 
     public void StartSpawning()
     {
-        isSpawningEnabled = true;
+        _isSpawningEnabled = true;
         EnsureBallExists();
     }
 
     public void StopSpawning()
     {
-        isSpawningEnabled = false;
+        _isSpawningEnabled = false;
     }
+
+    #endregion
+
+    #region SPAWNING
 
     public void EnsureBallExists()
     {
-        if (!isSpawningEnabled) return;
+        if (!_isSpawningEnabled) return;
 
-        if (activeBallCount <= 0)
+        // Guarantee at least one playable ball
+        if (_activeBallCount <= 0)
         {
             SpawnBall();
         }
@@ -40,12 +54,10 @@ public class BallSpawner : MonoBehaviour
 
     public void SpawnBall()
     {
-        if (!isSpawningEnabled) return;
+        if (!_isSpawningEnabled) return;
 
-        if (activeBallCount >= maxBalls)
-        {
-            return;
-        }
+        // Respect max ball limit
+        if (_activeBallCount >= maxBalls) return;
 
         if (ballPrefab == null || spawnPoint == null)
         {
@@ -53,35 +65,49 @@ public class BallSpawner : MonoBehaviour
             return;
         }
 
-        if (audioSource != null && appearClip != null)
-        {
-            audioSource.PlayOneShot(appearClip);
-        }
+        PlaySpawnAudio();
 
-        GameObject ballObj = Instantiate(ballPrefab, spawnPoint.position, spawnPoint.rotation);
+        GameObject ballObj = Instantiate(
+            ballPrefab,
+            spawnPoint.position,
+            spawnPoint.rotation
+        );
 
         BallController ball = ballObj.GetComponent<BallController>();
 
         if (ball != null)
         {
             ball.SetSpawner(this);
-            activeBallCount++;
+            _activeBallCount++;
         }
     }
 
+    private void PlaySpawnAudio()
+    {
+        if (audioSource != null && appearClip != null)
+        {
+            audioSource.PlayOneShot(appearClip);
+        }
+    }
+
+    #endregion
+
+    #region BALL LIFECYCLE
+
     public void OnBallDestroyed()
     {
-        activeBallCount--;
+        _activeBallCount--;
 
-        if (activeBallCount < 0)
-            activeBallCount = 0;
+        if (_activeBallCount < 0)
+            _activeBallCount = 0;
 
-        // Only respawn if allowed AND under max
-        if (isSpawningEnabled && activeBallCount == 0)
+        // Safety: ensure at least one ball exists while playing
+        if (_isSpawningEnabled && _activeBallCount == 0)
         {
             SpawnBall();
         }
     }
+
     public void ClearAllBalls()
     {
         var balls = FindObjectsByType<BallController>(FindObjectsSortMode.None);
@@ -91,6 +117,8 @@ public class BallSpawner : MonoBehaviour
             Destroy(ball.gameObject);
         }
 
-        activeBallCount = 0;
+        _activeBallCount = 0;
     }
+
+    #endregion
 }
