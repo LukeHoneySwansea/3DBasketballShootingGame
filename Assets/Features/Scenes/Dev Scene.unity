@@ -310,6 +310,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   slider: {fileID: 37358063}
   playerGrab: {fileID: 268082139}
+  smoothSpeed: 10
 --- !u!114 &37358063
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -788,6 +789,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerCamera: {fileID: 1960973246}
   sensitivity: 0.1
+  minVerticalAngle: -80
+  maxVerticalAngle: 80
 --- !u!4 &268082138
 Transform:
   m_ObjectHideFlags: 0
@@ -823,8 +826,8 @@ MonoBehaviour:
   maxThrowForce: 10
   chargeSpeed: 6
   arcHeight: 2
-  ballSpawner: {fileID: 1852174435}
   aimTarget: {fileID: 976695409}
+  ballSpawner: {fileID: 1852174435}
 --- !u!114 &268082140
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4220,9 +4223,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9005b78464b2fd649bee38a7dc90d3d3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  gameStateController: {fileID: 1928893799}
   menuCanvasGroup: {fileID: 1151617617}
   menuRoot: {fileID: 1151617616}
-  gameStateController: {fileID: 1928893799}
 --- !u!1 &1928893798
 GameObject:
   m_ObjectHideFlags: 0
@@ -4254,7 +4257,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1e96c6ef2b2918a449a3525ccf07a74e, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  currentState: 0
   OnMenuState:
     m_PersistentCalls:
       m_Calls:
@@ -4393,6 +4395,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
+  roundController: {fileID: 1928893801}
 --- !u!4 &1928893800
 Transform:
   m_ObjectHideFlags: 0
@@ -4422,6 +4425,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   roundTime: 30
   baseTargetScore: 2
+  maxTargetScore: 10
   scoreIncreasePerRound: 2
   hoopMover: {fileID: 7004621200994978209}
   OnRoundStart:
@@ -4471,6 +4475,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   roundController: {fileID: 1928893801}
   ballSpawner: {fileID: 1852174435}
+  gameStateController: {fileID: 1928893799}
   roundText: {fileID: 1846943506}
   timerText: {fileID: 973623655}
   scoreText: {fileID: 589936735}

@@ -1,61 +1,101 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-// Controls the camera rotation based on mouse input
+// Controls camera rotation based on mouse input (FPS-style look)
+
 public class CameraController : MonoBehaviour
 {
+    #region SERIALIZED FIELDS
+
     [SerializeField] private Camera playerCamera;
+
+    [Header("Settings")]
     [SerializeField] private float sensitivity = 0.1f;
+    [SerializeField] private float minVerticalAngle = -80f;
+    [SerializeField] private float maxVerticalAngle = 80f;
 
-    private float xRotation = 0f;
-    private bool isActive = false;
+    #endregion
 
-    void Awake()
+    #region PRIVATE FIELDS
+
+    private float _xRotation = 0f;
+    private bool _isActive = false;
+
+    #endregion
+
+    #region UNITY METHODS
+
+    private void Awake()
     {
+        // Auto-assign camera if not set
         if (playerCamera == null)
         {
             playerCamera = GetComponentInChildren<Camera>();
 
             if (playerCamera == null)
             {
-                Debug.LogError("CameraController: No Camera found in children.");
+                Debug.LogError("CameraController: No Camera found in children.", this);
             }
         }
     }
 
-    // Call this from your menu event to enable camera control
-    public void EnableCamera()
+    private void Update()
     {
-        isActive = true;
+        if (!_isActive) return;
+        if (Mouse.current == null) return;
 
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
+        HandleMouseLook();
     }
 
-    public void DisableCamera()
+    #endregion
+
+    #region CAMERA CONTROL
+
+    /// <summary>
+    /// Handles mouse input and applies camera rotation
+    /// </summary>
+    private void HandleMouseLook()
     {
-        isActive = false;
-
-        Cursor.lockState = CursorLockMode.None;
-        Cursor.visible = true;
-    }
-
-    void Update()
-    {
-        if (!isActive) return;
-
         Vector2 mouseInput = Mouse.current.delta.ReadValue() * sensitivity;
 
         float mouseX = mouseInput.x;
         float mouseY = mouseInput.y;
 
-        // Vertical rotation
-        xRotation -= mouseY;
-        xRotation = Mathf.Clamp(xRotation, -80f, 80f);
+        // Vertical rotation (camera only)
+        _xRotation -= mouseY;
+        _xRotation = Mathf.Clamp(_xRotation, minVerticalAngle, maxVerticalAngle);
 
-        playerCamera.transform.localRotation = Quaternion.Euler(xRotation, 0f, 0f);
+        playerCamera.transform.localRotation = Quaternion.Euler(_xRotation, 0f, 0f);
 
-        // Horizontal rotation
+        // Horizontal rotation (player body)
         transform.Rotate(Vector3.up * mouseX);
     }
+
+    #endregion
+
+    #region PUBLIC CONTROL
+
+    /// <summary>
+    /// Enables camera control and locks cursor
+    /// </summary>
+    public void EnableCamera()
+    {
+        _isActive = true;
+
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
+    }
+
+    /// <summary>
+    /// Disables camera control and unlocks cursor
+    /// </summary>
+    public void DisableCamera()
+    {
+        _isActive = false;
+
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+    }
+
+    #endregion
 }

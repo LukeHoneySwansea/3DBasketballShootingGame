@@ -1,41 +1,61 @@
 using UnityEngine;
-using UnityEngine.Events;
 
-public class UIMenuContoller : MonoBehaviour
+// Handles main menu button actions
+
+public class UIMenuController : MonoBehaviour
 {
-    [SerializeField] private CanvasGroup menuCanvasGroup;
-    [SerializeField] private GameObject menuRoot; // parent object of the menu
+    #region SERIALIZED FIELDS
 
     [SerializeField] private GameStateController gameStateController;
 
-    // Called when Start button is pressed
+    // Optional future references (kept for expansion)
+    [SerializeField] private CanvasGroup menuCanvasGroup;
+    [SerializeField] private GameObject menuRoot;
+
+    #endregion
+
+    #region PUBLIC BUTTON METHODS
+
+    /// <summary>
+    /// Starts the game (called by Start button)
+    /// </summary>
     public void StartGame()
     {
-        if (gameStateController != null)
-        {
-            gameStateController.StartGame();
-        }
+        if (gameStateController == null) return;
+
+        gameStateController.StartGame();
     }
 
-    // Called when Settings button is pressed
+    /// <summary>
+    /// Opens settings menu (not yet implemented)
+    /// </summary>
     public void OpenSettings()
     {
-        // TODO: Implement settings menu in future development
+        // TODO: Hook into settings UI when implemented
+        Debug.Log("Settings menu not implemented yet.");
     }
 
-    // Called when Credits button is pressed
+    /// <summary>
+    /// Opens credits screen (not yet implemented)
+    /// </summary>
     public void OpenCredits()
     {
-        // TODO: Implement credits screen in future development
+        // TODO: Hook into credits UI when implemented
+        Debug.Log("Credits not implemented yet.");
     }
 
-    // Called when Quit button is pressed
+    /// <summary>
+    /// Quits the application
+    /// </summary>
     public void QuitGame()
     {
         Application.Quit();
 
 #if UNITY_EDITOR
+        // Allows quitting while testing in editor
         UnityEditor.EditorApplication.isPlaying = false;
 #endif
     }
+
+    #endregion
 }
