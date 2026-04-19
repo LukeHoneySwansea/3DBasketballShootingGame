@@ -6,8 +6,9 @@ using UnityEngine.Events;
 public class GameRoundController : MonoBehaviour
 {
     [Header("Round Settings")]
-    [SerializeField] private float roundTime = 10f;
+    [SerializeField] private float roundTime = 30f;
     [SerializeField] private int baseTargetScore = 3;
+    [SerializeField] private int maxTargetScore = 10;
 
     [Header("Difficulty Scaling")]
     [SerializeField] private int scoreIncreasePerRound = 2;
@@ -36,7 +37,11 @@ public class GameRoundController : MonoBehaviour
         currentScore = 0;
         timer = roundTime;
 
-        targetScore = baseTargetScore + (currentRound - 1) * scoreIncreasePerRound;
+        // Clamp target score to max
+        targetScore = Mathf.Min(
+            baseTargetScore + (currentRound - 1) * scoreIncreasePerRound,
+            maxTargetScore
+        );
 
         isPlaying = true;
 
@@ -101,6 +106,7 @@ public class GameRoundController : MonoBehaviour
             OnGameOver?.Invoke();
         }
     }
+
     public void ResetGame()
     {
         isPlaying = false;
@@ -116,10 +122,6 @@ public class GameRoundController : MonoBehaviour
             hoopMover.ResetHoop();
         }
     }
-
-    // ----------------------------
-    // UI HELPERS (very useful later)
-    // ----------------------------
 
     public float GetTimeRemaining()
     {
